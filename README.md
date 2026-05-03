@@ -1,12 +1,14 @@
 ## HotbarTrainer
-<img width="820" height="520" alt="program-demo" src="https://github.com/user-attachments/assets/20c5b3c7-bbf9-459e-ae06-c427b32d798a" />
+<img width="810" height="510" alt="t" src="https://github.com/user-attachments/assets/e2e14ea2-727d-4929-9ecd-a372de061049" />
+
 A muscle memory training tool for practicing non-standard hotbar hotkeys.
 
 
 ### Features
 - Streak System: Tracks consecutive correct inputs.
 - Reaction Timer: Measures the time taken for each successful press.
-- Key Rebinding: Fully customizable hotkeys for all 9 slots via the settings menu.
+- Average Time: Average time from all correct inputs
+- Key Rebinding: Fully customizable hotkeys for slots via the settings menu.
 - Toggleable Hints: Optional on-screen display of assigned keys within the slots.
 
 
