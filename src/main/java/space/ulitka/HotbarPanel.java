@@ -117,12 +117,10 @@ public class HotbarPanel extends JPanel implements ActionListener {
             if (code == config.binds[session.targetIdx]) {
                 double reaction = (System.currentTimeMillis() - session.startTime) / 1000.0;
                 session.registerSuccess(reaction, config.historySize);
-
                 if (session.streak > config.bestStreak) {
                     config.bestStreak = session.streak;
                     config.save();
                 }
-
                 feedbackColor = new Color(0, 255, 0);
                 feedbackTimer = 7;
             } else {
@@ -185,54 +183,56 @@ public class HotbarPanel extends JPanel implements ActionListener {
         g2.setFont(fontSmall);
         FontMetrics fmSmall = g2.getFontMetrics();
         g2.setColor(new Color(150, 150, 150));
-
-        g2.drawString(I18n.get("label.best") + ": " + config.bestStreak, 30, 45);
-        g2.drawString(I18n.get("label.last_streak") + ": " + session.lastStreak, 30, 70);
+        g2.drawString(I18n.get("label.best") + " " + config.bestStreak, 30, 45);
+        g2.drawString(I18n.get("label.last_streak") + " " + session.lastStreak, 30, 70);
 
         String strAvgVal = session.reactionHistory.isEmpty() ? "--.---s" : String.format(java.util.Locale.US, "%.3fs", session.getAverage());
-        String strAvg = I18n.get("label.avg") + ": (" + session.reactionHistory.size() + "/" + config.historySize + "): " + strAvgVal;
+        String strAvg = I18n.get("label.avg") + " (" + session.reactionHistory.size() + "/" + config.historySize + "): " + strAvgVal;
         g2.drawString(strAvg, 30, 95);
 
-        int startX = (800 - 620) / 2;
+        int slotSize = 60;
+        int slotMargin = 9;
+        int hotbarPad = 10;
+        int hbw = (slotSize * 9) + (slotMargin * 8) + (hotbarPad * 2);
+        int startX = (800 - hbw) / 2;
         int startY = 370;
 
         g2.setColor(new Color(40, 40, 42));
-        g2.fillRoundRect(startX, startY, 620, 80, 4, 4);
+        g2.fillRoundRect(startX, startY, hbw, slotSize + 20, 4, 4);
 
         for (int i = 0; i < 9; i++) {
-            int x = startX + 10 + i * 65;
+            int x = startX + hotbarPad + i * (slotSize + slotMargin);
             int y = startY + 10;
 
             g2.setColor(new Color(30, 30, 30));
-            g2.fillRect(x, y, 60, 60);
+            g2.fillRect(x, y, slotSize, slotSize);
             g2.setColor(new Color(20, 20, 20));
             g2.setStroke(new BasicStroke(2));
-            g2.drawRect(x, y, 60, 60);
+            g2.drawRect(x, y, slotSize, slotSize);
 
             if (config.showKeys) {
                 String keyName = KeyEvent.getKeyText(config.binds[i]).toUpperCase();
                 g2.setFont(fontSmall);
                 g2.setColor(new Color(80, 80, 85));
-                g2.drawString(keyName, x + (60 - fmSmall.stringWidth(keyName)) / 2, y + 35);
+                g2.drawString(keyName, x + (slotSize - fmSmall.stringWidth(keyName)) / 2, y + (slotSize / 2) + 5);
             }
 
             if (i == session.targetIdx) {
                 g2.setColor(feedbackColor != null ? feedbackColor : Color.WHITE);
                 g2.setStroke(new BasicStroke(4));
-                g2.drawRect(x - 4, y - 4, 68, 68);
+                g2.drawRect(x - 4, y - 4, slotSize + 8, slotSize + 8);
             }
         }
     }
 
     private void drawSettings(Graphics2D g2) {
         drawButton(g2, backBtn, I18n.get("btn.back"));
-
         g2.setFont(fontMid);
         g2.setColor(Color.WHITE);
         String title = I18n.get("title.settings");
         g2.drawString(title, 400 - g2.getFontMetrics().stringWidth(title) / 2, 45);
 
-        drawButton(g2, hintsBtn, I18n.get("btn.hints") + ": " + (config.showKeys ? I18n.get("stat.on") : I18n.get("stat.off")));
+        drawButton(g2, hintsBtn, I18n.get("btn.hints") + (config.showKeys ? I18n.get("stat.on") : I18n.get("stat.off")));
         drawButton(g2, historyBtn, I18n.get("btn.history") + ": " + config.historySize);
 
         for (int i = 0; i < 9; i++) {
