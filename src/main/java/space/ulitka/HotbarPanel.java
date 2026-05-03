@@ -3,17 +3,12 @@ package space.ulitka;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Random;
 
 public class HotbarPanel extends JPanel implements ActionListener {
     private final Config config;
-    private final Random random;
+    private final GameSession session;
 
     private String state = "GAME";
-    private int targetIdx;
-    private int streak = 0;
-    private long startTime;
-    private double lastReactionTime = 0.0;
     private Color feedbackColor = null;
     private int feedbackTimer = 0;
     private Integer bindingIdx = null;
@@ -21,7 +16,8 @@ public class HotbarPanel extends JPanel implements ActionListener {
 
     private final Rectangle settingsBtn = new Rectangle(670, 20, 110, 35);
     private final Rectangle backBtn = new Rectangle(20, 20, 100, 35);
-    private final Rectangle hintsBtn = new Rectangle(325, 80, 150, 40);
+    private final Rectangle hintsBtn = new Rectangle(180, 80, 200, 40);
+    private final Rectangle historyBtn = new Rectangle(420, 80, 200, 40);
     private final Rectangle[] bindRects = new Rectangle[9];
 
     private final Font fontBig = new Font("Arial", Font.BOLD, 48);
@@ -36,9 +32,7 @@ public class HotbarPanel extends JPanel implements ActionListener {
 
         config = new Config();
         config.load();
-        random = new Random();
-        targetIdx = random.nextInt(9);
-        startTime = System.currentTimeMillis();
+        session = new GameSession();
 
         int gridStartX = (800 - (3 * 200)) / 2;
         for (int i = 0; i < 9; i++) {
@@ -65,8 +59,7 @@ public class HotbarPanel extends JPanel implements ActionListener {
             }
         });
 
-        Timer timer = new Timer(16, this);
-        timer.start();
+        new Timer(16, this).start();
     }
 
     private void handleMouse(Point p) {
@@ -79,6 +72,18 @@ public class HotbarPanel extends JPanel implements ActionListener {
             } else if (hintsBtn.contains(p)) {
                 config.showKeys = !config.showKeys;
                 config.save();
+            } else if (historyBtn.contains(p)) {
+                int[] sizes = {5, 10, 25, 50, 100};
+                int next = sizes[0];
+                for (int i = 0; i < sizes.length; i++) {
+                    if (config.historySize == sizes[i]) {
+                        next = sizes[(i + 1) % sizes.length];
+                        break;
+                    }
+                }
+                config.historySize = next;
+                config.save();
+                session.trimHistory(config.historySize);
             } else {
                 for (int i = 0; i < 9; i++) {
                     if (bindRects[i].contains(p)) {
@@ -109,29 +114,21 @@ public class HotbarPanel extends JPanel implements ActionListener {
         }
 
         if (state.equals("GAME")) {
-            int expected = config.binds[targetIdx];
-            if (code == expected) {
-                long curTime = System.currentTimeMillis();
-                lastReactionTime = (curTime - startTime) / 1000.0;
-                streak++;
-                if (streak > config.bestStreak) {
-                    config.bestStreak = streak;
+            if (code == config.binds[session.targetIdx]) {
+                double reaction = (System.currentTimeMillis() - session.startTime) / 1000.0;
+                session.registerSuccess(reaction, config.historySize);
+
+                if (session.streak > config.bestStreak) {
+                    config.bestStreak = session.streak;
                     config.save();
                 }
+
                 feedbackColor = new Color(0, 255, 0);
                 feedbackTimer = 7;
-
-                int prev = targetIdx;
-                while (targetIdx == prev) {
-                    targetIdx = random.nextInt(9);
-                }
-                startTime = System.currentTimeMillis();
             } else {
-                streak = 0;
-                lastReactionTime = 0.0;
+                session.registerFail();
                 feedbackColor = new Color(255, 0, 0);
                 feedbackTimer = 12;
-                startTime = System.currentTimeMillis();
             }
         }
     }
@@ -157,11 +154,7 @@ public class HotbarPanel extends JPanel implements ActionListener {
     }
 
     private void drawButton(Graphics2D g2, Rectangle r, String text) {
-        if (r.contains(mousePos)) {
-            g2.setColor(new Color(70, 70, 75));
-        } else {
-            g2.setColor(new Color(45, 45, 50));
-        }
+        g2.setColor(r.contains(mousePos) ? new Color(70, 70, 75) : new Color(45, 45, 50));
         g2.fillRoundRect(r.x, r.y, r.width, r.height, 5, 5);
         g2.setColor(new Color(100, 100, 100));
         g2.drawRoundRect(r.x, r.y, r.width, r.height, 5, 5);
@@ -177,58 +170,56 @@ public class HotbarPanel extends JPanel implements ActionListener {
     private void drawGame(Graphics2D g2) {
         drawButton(g2, settingsBtn, I18n.get("btn.settings"));
 
-        String strStreak = String.valueOf(streak);
+        String strStreak = String.valueOf(session.streak);
         g2.setFont(fontBig);
         FontMetrics fmBig = g2.getFontMetrics();
         g2.setColor(new Color(255, 215, 0));
-        g2.drawString(strStreak, 400 - fmBig.stringWidth(strStreak) / 2, 80);
+        g2.drawString(strStreak, 400 - fmBig.stringWidth(strStreak) / 2, 70);
 
-        String strTime = lastReactionTime > 0 ? String.format(java.util.Locale.US, "%.3fs", lastReactionTime) : "--.---s";
+        String strTime = session.lastReactionTime > 0 ? String.format(java.util.Locale.US, "%.3fs", session.lastReactionTime) : "--.---s";
         g2.setFont(fontMid);
         FontMetrics fmMid = g2.getFontMetrics();
         g2.setColor(new Color(0, 191, 255));
-        g2.drawString(strTime, 400 - fmMid.stringWidth(strTime) / 2, 120);
+        g2.drawString(strTime, 400 - fmMid.stringWidth(strTime) / 2, 110);
 
-        String strBest = I18n.get("label.best") + config.bestStreak;
         g2.setFont(fontSmall);
         FontMetrics fmSmall = g2.getFontMetrics();
-        g2.setColor(new Color(120, 120, 120));
-        g2.drawString(strBest, 400 - fmSmall.stringWidth(strBest) / 2, 160);
+        g2.setColor(new Color(150, 150, 150));
 
-        int slotSize = 60;
-        int slotMargin = 5;
-        int hotbarPad = 10;
-        int hbw = (slotSize * 9) + (slotMargin * 8) + (hotbarPad * 2);
-        int startX = (800 - hbw) / 2;
-        int startY = 500 - 130;
+        g2.drawString(I18n.get("label.best") + ": " + config.bestStreak, 30, 45);
+        g2.drawString(I18n.get("label.last_streak") + ": " + session.lastStreak, 30, 70);
+
+        String strAvgVal = session.reactionHistory.isEmpty() ? "--.---s" : String.format(java.util.Locale.US, "%.3fs", session.getAverage());
+        String strAvg = I18n.get("label.avg") + ": (" + session.reactionHistory.size() + "/" + config.historySize + "): " + strAvgVal;
+        g2.drawString(strAvg, 30, 95);
+
+        int startX = (800 - 620) / 2;
+        int startY = 370;
 
         g2.setColor(new Color(40, 40, 42));
-        g2.fillRoundRect(startX, startY, hbw, slotSize + 20, 4, 4);
+        g2.fillRoundRect(startX, startY, 620, 80, 4, 4);
 
         for (int i = 0; i < 9; i++) {
-            int x = startX + hotbarPad + i * (slotSize + slotMargin);
+            int x = startX + 10 + i * 65;
             int y = startY + 10;
 
             g2.setColor(new Color(30, 30, 30));
-            g2.fillRect(x, y, slotSize, slotSize);
+            g2.fillRect(x, y, 60, 60);
             g2.setColor(new Color(20, 20, 20));
             g2.setStroke(new BasicStroke(2));
-            g2.drawRect(x, y, slotSize, slotSize);
+            g2.drawRect(x, y, 60, 60);
 
             if (config.showKeys) {
                 String keyName = KeyEvent.getKeyText(config.binds[i]).toUpperCase();
                 g2.setFont(fontSmall);
                 g2.setColor(new Color(80, 80, 85));
-                int kx = x + (slotSize - fmSmall.stringWidth(keyName)) / 2;
-                int ky = y + ((slotSize - fmSmall.getHeight()) / 2) + fmSmall.getAscent();
-                g2.drawString(keyName, kx, ky);
+                g2.drawString(keyName, x + (60 - fmSmall.stringWidth(keyName)) / 2, y + 35);
             }
 
-            if (i == targetIdx) {
-                Color c = feedbackColor != null ? feedbackColor : new Color(255, 255, 255);
-                g2.setColor(c);
+            if (i == session.targetIdx) {
+                g2.setColor(feedbackColor != null ? feedbackColor : Color.WHITE);
                 g2.setStroke(new BasicStroke(4));
-                g2.drawRect(x - 4, y - 4, slotSize + 8, slotSize + 8);
+                g2.drawRect(x - 4, y - 4, 68, 68);
             }
         }
     }
@@ -238,20 +229,17 @@ public class HotbarPanel extends JPanel implements ActionListener {
 
         g2.setFont(fontMid);
         g2.setColor(Color.WHITE);
-        FontMetrics fmMid = g2.getFontMetrics();
         String title = I18n.get("title.settings");
-        g2.drawString(title, 400 - fmMid.stringWidth(title) / 2, 45);
+        g2.drawString(title, 400 - g2.getFontMetrics().stringWidth(title) / 2, 45);
 
-        String status = config.showKeys ? I18n.get("stat.on") : I18n.get("stat.off");
-        drawButton(g2, hintsBtn, I18n.get("btn.hints") + status);
+        drawButton(g2, hintsBtn, I18n.get("btn.hints") + ": " + (config.showKeys ? I18n.get("stat.on") : I18n.get("stat.off")));
+        drawButton(g2, historyBtn, I18n.get("btn.history") + ": " + config.historySize);
 
         for (int i = 0; i < 9; i++) {
             Rectangle r = bindRects[i];
-            Color borderCol = (bindingIdx != null && bindingIdx == i) ? new Color(100, 100, 255) : new Color(100, 100, 100);
-
             g2.setColor(new Color(40, 40, 45));
             g2.fillRoundRect(r.x, r.y, r.width, r.height, 5, 5);
-            g2.setColor(borderCol);
+            g2.setColor((bindingIdx != null && bindingIdx == i) ? new Color(100, 100, 255) : new Color(100, 100, 100));
             g2.setStroke(new BasicStroke(2));
             g2.drawRoundRect(r.x, r.y, r.width, r.height, 5, 5);
 
