@@ -3,7 +3,7 @@ package space.ulitka;
 import java.io.*;
 
 public class Config {
-    public int[] binds = {49, 50, 51, 52, 53, 82, 84, 71, 86};
+    public int[] binds = {49, 50, 51, 52, 53, 54, 55, 56, 57};
     public int bestStreak = 0;
     public boolean showKeys = true;
     public int historySize = 10;
