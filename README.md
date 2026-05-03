@@ -17,3 +17,6 @@ A muscle memory training tool for practicing non-standard hotbar hotkeys.
 ### Controls:
 - Custom Hotkeys: Select the active slot.
 - ESC: Exit the program.
+
+### Credits:
+- Stole a workflow file from the Ninjabrain's repository Ninjabrain1/Ninjabrain-Bot
