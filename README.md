@@ -1,0 +1,19 @@
+## HotbarTrainer
+A muscle memory training tool for practicing non-standard hotbar hotkeys.
+
+### Features
+- Streak System: Tracks consecutive correct inputs.
+- Reaction Timer: Measures the time taken for each successful press (in seconds).
+- Key Rebinding: Fully customizable hotkeys for all 9 slots via the settings menu.
+- Toggleable Hints: Optional on-screen display of assigned keys within the slots.
+
+### Requirements:
+- Java version 17 or higher.
+
+### Launch:
+- Download the latest JAR file from the Releases section.
+- Launch by double-clicking the file
+
+### Controls:
+- Custom Hotkeys: Select the active slot.
+- ESC: Exit the program.
